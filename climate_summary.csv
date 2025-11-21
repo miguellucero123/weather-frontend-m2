@@ -1,0 +1,11 @@
+Ciudad,Dist(km),Actual(°C),Máx(°C),Mín(°C),Humedad(%),Viento(km/h),Lluvia(mm),Estado
+Torres del Paine - Glaciar Grey,0,2.2,3.4,1.4,86,41.1,22.6,Lluvia ligera
+Puerto Natales,105,11.9,13.2,9.6,62,16.8,0.5,Nublado
+Villa O'Higgins,285,5.3,7.2,4.9,83,11.4,1.2,Lluvia ligera
+El Calafate,290,13.1,15.4,11.5,53,10.4,0.0,Parcialmente nublado
+Glaciar Perito Moreno,350,10.5,11.4,7.1,55,10.1,0.2,Parcialmente nublado
+Punta Arenas,350,13.5,14.4,8.0,58,30.2,0.7,Nublado
+Tres Lagos,400,11.1,11.9,6.9,50,13.7,0.0,Nublado
+El Chaltén,490,-1.0,0.1,-1.6,86,30.5,1.8,Nieve ligera
+Gobernador Gregores,520,13.0,16.0,6.1,41,14.9,0.0,Mayormente despejado
+Río Gallegos,580,12.5,16.3,7.9,62,18.2,2.4,Nublado
