@@ -180,3 +180,5 @@ Proyecto educativo - Módulo 2
 **Última actualización:** 2025-11-21 11:17:47
 **Versión:** 2.0
 **Estado:**  Completo y Funcional
+
+## Desarrollado por: Miguel Lucero
