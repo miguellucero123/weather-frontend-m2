@@ -182,3 +182,7 @@ Proyecto educativo - Módulo 2
 **Estado:**  Completo y Funcional
 
 ## Desarrollado por: Miguel Lucero
+
+## ?? Enlaces
+- **Repo:** [GitHub](https://github.com/miguellucero123/weather-frontend-m2)
+- **Web:** [Demo](https://miguellucero123.github.io/weather-frontend-m2/)
