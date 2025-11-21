@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClimaTorre - Torres del Paine</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --primary: #0d47a1; --secondary: #1976d2; --accent: #00bcd4; --light: #f5f7fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); min-height: 100vh; }
+        .navbar-custom { background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .navbar-brand { font-weight: 700; font-size: 1.5rem; color: white !important; }
+        .navbar-brand i { margin-right: 0.5rem; color: var(--accent); }
+        .nav-link { color: rgba(255,255,255,0.8) !important; transition: 0.3s; }
+        .nav-link:hover { color: var(--accent) !important; }
+        .main-container { min-height: calc(100vh - 200px); padding: 3rem 1rem; }
+        .page-title { color: white; text-align: center; margin-bottom: 3rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .update-info { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; text-align: center; }
+        .weather-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer; border: 2px solid transparent; min-height: 240px; display: flex; flex-direction: column; }
+        .weather-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,0,0,0.2); border-color: var(--accent); }
+        .card-header-weather { background: linear-gradient(135deg, var(--secondary), var(--accent)); color: white; padding: 1.5rem 1rem; text-align: center; }
+        .card-header-weather h5 { font-weight: 700; margin-bottom: 0.5rem; }
+        .card-body-weather { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+        .weather-icon { font-size: 3rem; margin: 1rem 0; }
+        .temp-main { font-size: 2rem; font-weight: 700; color: var(--primary); margin: 0.5rem 0; }
+        .weather-desc { font-size: 0.95rem; color: #666; margin: 0.5rem 0; }
+        .weather-badge { display: inline-block; background: var(--light); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--secondary); font-weight: 600; margin-top: 1rem; }
+        .detail-header { background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .weather-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .detail-item { background: var(--light); padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid var(--accent); }
+        .detail-item-label { font-size: 0.85rem; color: #999; text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem; }
+        .detail-item-value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+        .forecast-section { background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .forecast-title { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 1.5rem; }
+        .forecast-card { background: linear-gradient(135deg, var(--light), white); border: 2px solid #e0e0e0; border-radius: 10px; padding: 1.5rem; text-align: center; transition: 0.3s; cursor: pointer; }
+        .forecast-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,188,212,0.2); }
+        .forecast-day { font-weight: 700; color: var(--primary); margin-bottom: 1rem; font-size: 1.1rem; }
+        .forecast-temps { font-size: 0.95rem; color: #666; margin: 0.5rem 0; }
+        .forecast-temps strong { color: var(--primary); }
+        .forecast-info { display: flex; justify-content: space-around; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; font-size: 0.85rem; }
+        .forecast-info-value { font-weight: 700; color: var(--secondary); }
+        .day-detail { background: white; border-radius: 12px; padding: 2rem; margin-top: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
+        .day-detail.show { display: block; }
+        .day-detail h3 { color: var(--primary); margin-bottom: 1.5rem; }
+        .day-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; }
+        .map-section { background: white; border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 2rem; margin-top: 3rem; }
+        .map-header { background: linear-gradient(135deg, var(--secondary), var(--accent)); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .map-header:hover { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .map-header h3 { margin: 0; font-size: 1.3rem; }
+        .map-toggle { font-size: 1.5rem; transition: transform 0.3s; }
+        .map-toggle.collapsed { transform: rotate(180deg); }
+        #mapContainer { height: 500px; width: 100%; display: none; }
+        #mapContainer.show { display: block; }
+        footer { background: rgba(0,0,0,0.2); color: white; padding: 2rem 1rem; text-align: center; margin-top: 3rem; }
+        .btn-custom { background: var(--secondary); color: white !important; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: 0.3s; }
+        .btn-custom:hover { background: var(--primary); }
+        @media (max-width: 768px) { .page-title { font-size: 1.75rem; } .current-temp { font-size: 2.5rem; } #mapContainer { height: 400px; } }
+        @media (max-width: 420px) { .page-title { font-size: 1.5rem; } #mapContainer { height: 300px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-lg">
+            <a class="navbar-brand" href="#"><i class="fas fa-cloud-sun"></i>ClimaTorre</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#" onclick="goHome()">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="scrollToMap()"> Mapa</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div class="container-lg">
+            <div id="home">
+                <div class="update-info">
+                    <i class="fas fa-sync"></i> Actualizado: 21/11/2025 11:17:47
+                </div>
+                
+                <h1 class="page-title"><i class="fas fa-mountain"></i> Torres del Paine - Clima</h1>
+                <p style="text-align: center; color: white; margin-bottom: 2rem;">Selecciona una ciudad para ver el pronóstico detallado</p>
+
+                <div class="row g-4">
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('El Calafate')">
+                            <div class="card-header-weather">
+                                <h5>El Calafate</h5>
+                                <small>290 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">13°C</div>
+                                <div class="weather-desc">Parcialmente nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('El Chaltén')">
+                            <div class="card-header-weather">
+                                <h5>El Chaltén</h5>
+                                <small>490 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-snowflake" style="color: #81d4fa;"></i></div>
+                                <div class="temp-main">-1°C</div>
+                                <div class="weather-desc">Nieve ligera</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Glaciar Perito Moreno')">
+                            <div class="card-header-weather">
+                                <h5>Glaciar Perito Moreno</h5>
+                                <small>350 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">10°C</div>
+                                <div class="weather-desc">Parcialmente nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Gobernador Gregores')">
+                            <div class="card-header-weather">
+                                <h5>Gobernador Gregores</h5>
+                                <small>520 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">13°C</div>
+                                <div class="weather-desc">Mayormente despejado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Puerto Natales')">
+                            <div class="card-header-weather">
+                                <h5>Puerto Natales</h5>
+                                <small>105 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">12°C</div>
+                                <div class="weather-desc">Nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Punta Arenas')">
+                            <div class="card-header-weather">
+                                <h5>Punta Arenas</h5>
+                                <small>350 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">14°C</div>
+                                <div class="weather-desc">Nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Río Gallegos')">
+                            <div class="card-header-weather">
+                                <h5>Río Gallegos</h5>
+                                <small>580 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">12°C</div>
+                                <div class="weather-desc">Nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Torres del Paine - Glaciar Grey')">
+                            <div class="card-header-weather">
+                                <h5>Torres del Paine - Glaciar Grey</h5>
+                                <small>0 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-rain" style="color: #4fc3f7;"></i></div>
+                                <div class="temp-main">2°C</div>
+                                <div class="weather-desc">Lluvia ligera</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Tres Lagos')">
+                            <div class="card-header-weather">
+                                <h5>Tres Lagos</h5>
+                                <small>400 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-sun" style="color: #ffb74d;"></i></div>
+                                <div class="temp-main">11°C</div>
+                                <div class="weather-desc">Nublado</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="weather-card" onclick="showDetail('Villa O'Higgins')">
+                            <div class="card-header-weather">
+                                <h5>Villa O'Higgins</h5>
+                                <small>285 km</small>
+                            </div>
+                            <div class="card-body-weather">
+                                <div class="weather-icon"><i class="fas fa-cloud-rain" style="color: #4fc3f7;"></i></div>
+                                <div class="temp-main">5°C</div>
+                                <div class="weather-desc">Lluvia ligera</div>
+                                <span class="weather-badge">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                
+    <div id="torres-info-card" class="map-section" style="background: linear-gradient(135deg, #263238, #37474f); margin: 2rem 0; padding: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.25);">
+        
+        <div style="background: linear-gradient(90deg, #00bcd4, #00838f); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin:0; color: white; font-weight: 700;"><i class="fas fa-mountain"></i> Torres del Paine - Sector Grey</h3>
+            <span style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; color: white; font-size: 0.9rem;">Parque Nacional</span>
+        </div>
+
+        <div style="padding: 2rem; color: white;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+                
+                <div>
+                    <h4 style="color: #4dd0e1; border-bottom: 1px solid #546e7a; padding-bottom: 10px; margin-bottom: 15px;">📍 Ubicación Estratégica</h4>
+                    <ul style="list-style: none; padding: 0; font-size: 0.95rem; color: #cfd8dc;">
+                        <li style="margin-bottom: 8px;"><strong>Punto Cero:</strong> Refugio/Glaciar Grey</li>
+                        <li style="margin-bottom: 8px;"><strong>Coordenadas:</strong> 51°00'S, 73°13'O</li>
+                        <li style="margin-bottom: 8px;"><strong>Acceso:</strong> Navegación Lago Grey o Trekking W</li>
+                        <li><strong>Glaciares:</strong> Grey, Pío XI, Tyndall</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 style="color: #4dd0e1; border-bottom: 1px solid #546e7a; padding-bottom: 10px; margin-bottom: 15px;">⚠️ Condiciones Actuales</h4>
+                    <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+                        <div style="font-size: 2.5rem; color: #fff;" id="torres-temp-widget">--°C</div>
+                        <div style="font-size: 0.9rem; color: #b0bec5;">Temperatura estimada<br>en el glaciar</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; display: flex; gap: 15px;">
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 0.8rem; color: #ffcc80;">VIENTO</div>
+                            <div style="font-weight: bold;">MUY ALTO</div>
+                        </div>
+                        <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 0.8rem; color: #81d4fa;">NIEVE</div>
+                            <div style="font-weight: bold;">MODERADO</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+
+<div id="mapa" class="map-section">
+                    <div class="map-header" onclick="toggleMap()">
+                        <h3><i class="fas fa-map"></i>  Mapa Interactivo</h3>
+                        <span class="map-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div id="mapContainer"></div>
+                </div>
+            </div>
+
+            <div id="detail" style="display:none;">
+                <a href="#" onclick="goHome(); return false;" class="btn btn-custom mb-3">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+                <div id="detailContent"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <strong>Tiempo - Torres del Paine </strong> - Pronóstico Meteorológico 7 Días
+        <br><small>© 2025 - METGO_3D | Open-Meteo API | DTR </small>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const DATOS = {"Torres del Paine - Glaciar Grey": {"city": {"name": "Torres del Paine - Glaciar Grey", "lat": -51.0, "lon": -73.23, "distance": 0, "zone": "Glaciar Grey"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 2.2, "weather_code": 61, "wind_speed_10m": 41.1, "wind_direction_10m": 290, "relative_humidity_2m": 86}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 63, 71, 73, 75, 85, 71], "temperature_2m_max": [3.4, 4.8, 4.3, 3.7, 3.9, 0.9, 0.7], "temperature_2m_min": [1.4, 3.2, 0.9, 0.6, 1.5, -0.9, -2.2], "precipitation_sum": [22.6, 35.8, 24.6, 33.0, 46.2, 36.0, 1.5], "wind_speed_10m_max": [44.3, 69.6, 66.2, 47.3, 43.4, 56.2, 41.5]}, "updated": "2025-11-21T11:17:47.687668"}, "Puerto Natales": {"city": {"name": "Puerto Natales", "lat": -51.7252, "lon": -72.5149, "distance": 105, "zone": "Zona Sur - Chile"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 11.9, "weather_code": 3, "wind_speed_10m": 16.8, "wind_direction_10m": 279, "relative_humidity_2m": 62}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 61, 61, 61, 61, 3, 3], "temperature_2m_max": [13.2, 14.8, 11.3, 12.3, 13.8, 10.8, 11.2], "temperature_2m_min": [9.6, 10.8, 9.1, 7.5, 10.0, 8.3, 7.5], "precipitation_sum": [0.5, 1.0, 1.4, 1.8, 1.5, 0.3, 0.0], "wind_speed_10m_max": [22.1, 31.2, 36.7, 22.1, 24.7, 35.8, 30.7]}, "updated": "2025-11-21T11:17:47.687668"}, "El Calafate": {"city": {"name": "El Calafate", "lat": -50.3399, "lon": -72.255, "distance": 290, "zone": "Zona Este - Argentina"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 13.1, "weather_code": 2, "wind_speed_10m": 10.4, "wind_direction_10m": 250, "relative_humidity_2m": 53}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [3, 3, 3, 3, 3, 3, 3], "temperature_2m_max": [15.4, 17.6, 16.1, 16.8, 17.6, 13.9, 12.2], "temperature_2m_min": [11.5, 11.2, 13.0, 10.9, 12.4, 11.4, 9.3], "precipitation_sum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "wind_speed_10m_max": [26.4, 20.6, 29.7, 20.6, 26.1, 31.0, 31.2]}, "updated": "2025-11-21T11:17:47.687668"}, "Glaciar Perito Moreno": {"city": {"name": "Glaciar Perito Moreno", "lat": -50.47, "lon": -73.03, "distance": 350, "zone": "Zona Glaciar Arg"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 10.5, "weather_code": 2, "wind_speed_10m": 10.1, "wind_direction_10m": 270, "relative_humidity_2m": 55}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 61, 61, 61, 61, 61, 3], "temperature_2m_max": [11.4, 13.8, 11.8, 12.8, 12.7, 9.3, 8.6], "temperature_2m_min": [7.1, 8.8, 8.0, 5.7, 8.3, 5.5, 3.7], "precipitation_sum": [0.2, 8.8, 1.1, 5.9, 6.0, 4.2, 0.0], "wind_speed_10m_max": [13.0, 18.4, 19.9, 16.9, 13.7, 23.4, 15.9]}, "updated": "2025-11-21T11:17:47.687668"}, "El Chaltén": {"city": {"name": "El Chaltén", "lat": -49.3318, "lon": -73.1641, "distance": 490, "zone": "Zona Sierras"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": -1.0, "weather_code": 71, "wind_speed_10m": 30.5, "wind_direction_10m": 287, "relative_humidity_2m": 86}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [71, 63, 61, 73, 63, 71, 71], "temperature_2m_max": [0.1, 2.0, 2.0, 1.9, 2.7, 2.4, -2.2], "temperature_2m_min": [-1.6, 0.0, 0.2, -0.4, 0.9, -2.9, -5.3], "precipitation_sum": [1.8, 14.2, 17.6, 22.7, 37.8, 25.5, 0.3], "wind_speed_10m_max": [31.2, 56.5, 52.7, 34.5, 36.2, 33.0, 21.7]}, "updated": "2025-11-21T11:17:47.687668"}, "Punta Arenas": {"city": {"name": "Punta Arenas", "lat": -53.1638, "lon": -70.9181, "distance": 350, "zone": "Zona Austral"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 13.5, "weather_code": 3, "wind_speed_10m": 30.2, "wind_direction_10m": 287, "relative_humidity_2m": 58}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 61, 3, 3, 61, 80, 3], "temperature_2m_max": [14.4, 13.9, 11.9, 13.1, 13.8, 11.8, 12.4], "temperature_2m_min": [8.0, 8.4, 6.8, 7.3, 7.0, 7.2, 5.9], "precipitation_sum": [0.7, 0.8, 0.2, 0.2, 1.5, 2.4, 0.3], "wind_speed_10m_max": [30.1, 40.9, 41.5, 33.7, 38.5, 40.4, 33.4]}, "updated": "2025-11-21T11:17:47.687668"}, "Río Gallegos": {"city": {"name": "Río Gallegos", "lat": -51.6298, "lon": -69.2181, "distance": 580, "zone": "Zona Atlántica"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 12.5, "weather_code": 3, "wind_speed_10m": 18.2, "wind_direction_10m": 304, "relative_humidity_2m": 62}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 61, 3, 61, 61, 61, 3], "temperature_2m_max": [16.3, 19.0, 15.1, 16.2, 18.2, 14.7, 14.0], "temperature_2m_min": [7.9, 8.5, 9.5, 7.3, 8.7, 7.5, 4.8], "precipitation_sum": [2.4, 0.7, 0.0, 1.9, 1.8, 0.6, 0.0], "wind_speed_10m_max": [35.9, 27.4, 45.5, 35.6, 16.3, 42.5, 35.8]}, "updated": "2025-11-21T11:17:47.687668"}, "Villa O'Higgins": {"city": {"name": "Villa O'Higgins", "lat": -48.4667, "lon": -72.5667, "distance": 285, "zone": "Zona Norte"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 5.3, "weather_code": 61, "wind_speed_10m": 11.4, "wind_direction_10m": 305, "relative_humidity_2m": 83}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [61, 61, 61, 61, 61, 61, 3], "temperature_2m_max": [7.2, 8.3, 9.4, 10.3, 11.1, 10.4, 6.5], "temperature_2m_min": [4.9, 5.4, 8.1, 7.6, 8.3, 5.0, 3.4], "precipitation_sum": [1.2, 0.6, 3.1, 5.5, 4.2, 9.6, 0.0], "wind_speed_10m_max": [13.8, 18.8, 17.7, 16.7, 21.6, 27.3, 9.2]}, "updated": "2025-11-21T11:17:47.687668"}, "Gobernador Gregores": {"city": {"name": "Gobernador Gregores", "lat": -49.8, "lon": -70.25, "distance": 520, "zone": "Zona Estepa"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 13.0, "weather_code": 1, "wind_speed_10m": 14.9, "wind_direction_10m": 302, "relative_humidity_2m": 41}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [3, 3, 3, 80, 3, 3, 3], "temperature_2m_max": [16.0, 18.0, 18.9, 15.7, 19.3, 14.7, 14.2], "temperature_2m_min": [6.1, 5.1, 8.8, 3.9, 8.2, 6.7, 2.1], "precipitation_sum": [0.0, 0.0, 0.0, 1.9, 0.0, 0.0, 0.0], "wind_speed_10m_max": [20.9, 30.7, 28.5, 25.6, 27.8, 29.4, 17.4]}, "updated": "2025-11-21T11:17:47.687668"}, "Tres Lagos": {"city": {"name": "Tres Lagos", "lat": -50.2833, "lon": -72.7, "distance": 400, "zone": "Zona Centro"}, "current": {"time": "2025-11-21T11:15", "interval": 900, "temperature_2m": 11.1, "weather_code": 3, "wind_speed_10m": 13.7, "wind_direction_10m": 275, "relative_humidity_2m": 50}, "daily": {"time": ["2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27"], "weather_code": [3, 61, 61, 61, 61, 61, 2], "temperature_2m_max": [11.9, 15.0, 12.6, 13.5, 14.0, 9.9, 8.8], "temperature_2m_min": [6.9, 8.0, 8.3, 5.6, 8.1, 5.5, 3.1], "precipitation_sum": [0.0, 2.9, 0.2, 3.0, 2.1, 2.4, 0.0], "wind_speed_10m_max": [18.1, 20.2, 23.3, 19.5, 15.9, 24.5, 19.9]}, "updated": "2025-11-21T11:17:47.687668"}};
+        let map = null;
+        let mapInitialized = false;
+        // COORDENADAS ACTUALIZADAS: Glaciar Grey
+        const TORRES_DEL_PAINE = [-51.0000, -73.2300];
+
+        function scrollToMap() {
+            document.getElementById('mapa').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function toggleMap() {
+            const container = document.getElementById('mapContainer');
+            const toggle = document.querySelector('.map-toggle');
+            const isShown = container.classList.contains('show');
+            
+            if (isShown) {
+                container.classList.remove('show');
+                toggle.classList.remove('collapsed');
+            } else {
+                container.classList.add('show');
+                toggle.classList.add('collapsed');
+                if (!mapInitialized) {
+                    initializeMap();
+                    mapInitialized = true;
+                }
+            }
+        }
+
+        function initializeMap() {
+            map = L.map('mapContainer').setView(TORRES_DEL_PAINE, 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap'}).addTo(map);
+
+            L.circleMarker(TORRES_DEL_PAINE, {radius: 12, fillColor: '#00bcd4', color: '#0d47a1', weight: 3, fillOpacity: 0.8}).addTo(map).bindPopup('🏔️ Torres del Paine (Grey)');
+
+            for (const [city, data] of Object.entries(DATOS)) {
+                const lat = data.city.lat;
+                const lon = data.city.lon;
+                const temp = Math.round(data.current.temperature_2m);
+                let color = temp < 5 ? '#0d47a1' : temp < 10 ? '#1976d2' : temp < 15 ? '#00bcd4' : temp < 20 ? '#4caf50' : '#ff9800';
+
+                L.circleMarker([lat, lon], {radius: 10, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8}).addTo(map).bindPopup(city + ' - ' + temp + '°C');
+            }
+
+            setTimeout(() => {map.invalidateSize();}, 100);
+        }
+
+        function getDesc(code) {
+            const d = {0:'Despejado', 1:'May. despejado', 2:'Parc. nublado', 3:'Nublado', 45:'Niebla', 61:'Lluvia ligera', 63:'Lluvia moderada', 65:'Lluvia densa', 71:'Nieve', 80:'Lluvias', 81:'Lluvia fuerte'};
+            return d[code] || 'Desconocido';
+        }
+
+        function goHome() {
+            document.getElementById('home').style.display = 'block';
+            document.getElementById('detail').style.display = 'none';
+        }
+
+        function showDayDetail(city, dayIndex) {
+            const d = DATOS[city];
+            if (!d) return;
+            
+            const dy = d.daily;
+            const max = Math.round(dy.temperature_2m_max[dayIndex]);
+            const min = Math.round(dy.temperature_2m_min[dayIndex]);
+            const rain = dy.precipitation_sum[dayIndex];
+            const wind = Math.round(dy.wind_speed_10m_max[dayIndex]);
+            const desc = getDesc(dy.weather_code[dayIndex]);
+            const dayDate = new Date(dy.time[dayIndex]).toLocaleDateString('es-CL', {weekday: 'long', month: 'long', day: 'numeric'});
+
+            const html = `
+                <div class="day-detail show">
+                    <h3><i class="fas fa-calendar-day"></i> Detalle: ${dayDate}</h3>
+                    <p style="color: #666; font-size: 1.1rem; text-align: center; margin-bottom: 2rem;">${desc}</p>
+                    <div class="day-detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-item-label">Máxima</div>
+                            <div class="detail-item-value">${max}°C</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Mínima</div>
+                            <div class="detail-item-value">${min}°C</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Precipitación</div>
+                            <div class="detail-item-value">${rain.toFixed(1)} mm</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Viento Máximo</div>
+                            <div class="detail-item-value">${wind} km/h</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dayDetail').innerHTML = html;
+            document.getElementById('dayDetail').scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+
+        function showDetail(city) {
+            const d = DATOS[city];
+            if (!d) return;
+            
+            const c = d.current;
+            const dy = d.daily;
+            
+            let html = `<div class="detail-header">
+                <h2 style="color:#0d47a1;margin-bottom:1.5rem;"><i class="fas fa-location-dot"></i> ${city}</h2>
+                <div class="weather-details">
+                    <div class="detail-item">
+                        <div class="detail-item-label">Temperatura</div>
+                        <div class="detail-item-value">${Math.round(c.temperature_2m)}°C</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-item-label">Humedad</div>
+                        <div class="detail-item-value">${c.relative_humidity_2m}%</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-item-label">Viento</div>
+                        <div class="detail-item-value">${Math.round(c.wind_speed_10m)} km/h</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-item-label">Dirección</div>
+                        <div class="detail-item-value">${Math.round(c.wind_direction_10m)}°</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="forecast-section">
+                <h3 class="forecast-title">Pronóstico Semanal (Click en día para detalles)</h3>
+                <div class="row g-3">`;
+
+            for (let i = 0; i < dy.time.length; i++) {
+                html += `<div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <div class="forecast-card" onclick="showDayDetail('${city}', ${i})">
+                        <div class="forecast-day">${new Date(dy.time[i]).toLocaleDateString('es-CL', {weekday: 'short', month: 'short', day: 'numeric'})}</div>
+                        <div class="forecast-temps"><strong>${Math.round(dy.temperature_2m_max[i])}°C</strong> / ${Math.round(dy.temperature_2m_min[i])}°C</div>
+                        <div class="forecast-info">
+                            <div><small>Lluvia</small><div class="forecast-info-value">${dy.precipitation_sum[i].toFixed(1)}mm</div></div>
+                            <div><small>Viento</small><div class="forecast-info-value">${Math.round(dy.wind_speed_10m_max[i])}km/h</div></div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            html += `</div></div><div id="dayDetail"></div>`;
+            document.getElementById('detailContent').innerHTML = html;
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('detail').style.display = 'block';
+        }
+    </script>
+
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if(typeof DATOS !== 'undefined') {
+                // Buscamos por el nombre corregido o por el antiguo por si acaso
+                let cityData = DATOS['Torres del Paine - Glaciar Grey'] || DATOS['Torres del Paine - Glaciar'];
+                
+                if(cityData) {
+                    let temp = Math.round(cityData.current.temperature_2m);
+                    let el = document.getElementById('torres-temp-widget');
+                    if(el) el.innerText = temp + "°C";
+                }
+            }
+        });
+        </script>
+        
+</body>
+</html>
